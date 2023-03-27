@@ -81,7 +81,6 @@ singleGraph <- sectorEmissions %>%
   filter(prov!= "Canada")%>%
   filter(year <=2020)%>%
   ggplot()+
-  geom_vline(xintercept = 2020,linetype=3)+
   ggtitle("Canadian Electricity Sector GHG Emissions by Province")+
   geom_area(aes(year,emissions,group=prov,fill=prov), position="stack", color="black", linewidth=0.5,alpha=4)
 singleGraph
@@ -94,6 +93,7 @@ projecTionData = rbind(missingPoints,projecTionData)
 
 
 singleGraph+
+  geom_vline(xintercept = 2020,linetype=3,size=1.5)+
   ggtitle("Canadian Electricity Sector GHG Emissions", subtitle = "2022 NIR levels and 2022 Reference Case projections")+
   geom_area(data=projecTionData,aes(projecTionData$year,projecTionData$emissions,group=projecTionData$prov,fill=projecTionData$prov),
             color="black",position = "stack",size=0.1,alpha=0.4)
