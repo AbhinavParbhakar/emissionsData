@@ -23,8 +23,8 @@ library(cowplot)
 download.file(url = "https://data.ec.gc.ca/data/substances/monitor/canada-s-official-greenhouse-gas-inventory/C-Tables-Electricity-Canada-Provinces-Territories/EN_Electricity_Can_Prov_Terr.xlsx", destfile = "data.xlsx", mode = "wb")
 download.file(url="https://econ366.aleach.ca/resources/assignment_3/assignment_3_projections.csv", destfile="canadaEmissionsData.csv", mode="wb")
 ```
-
-```{r deliverable 1, warning=F,message=F}
+## Deliverable 2
+```{r deliverable 1, warning=F,message=F, out.width="95%",dpi=150,fig.align="center",fig.height=8,fig.width=14}
 columNames = read_excel("data.xlsx",skip=2,n_max = 1,col_names = F) %>% clean_names()
 columNames[18] = 2020
 newColumnNames = c("Type")
@@ -52,7 +52,7 @@ electricityData = electricityData %>% pivot_longer(-Type,names_to = "years", val
 electricityData%>%
   ggplot()+
   ggtitle("National Electricity Generation by Source")+
-  geom_col(aes(years, ElectricityGeneration/1000,group=years,fill=Type),color="black",linewidth=.25,width = 0.8)
+  geom_col(aes(years, ElectricityGeneration/1000,group=years,fill=Type),color="black",linewidth=.25,width = 1)
 
 albertaData = read_excel("data.xlsx",sheet="Table A13-10",skip = 15,n_max = 7,col_names = F ) %>% clean_names()
 colnames(albertaData) = newColumnNames
@@ -64,11 +64,11 @@ albertaData = albertaData %>% pivot_longer(-Type,names_to = "years", values_to =
 albertaData%>%
   ggplot()+
   ggtitle("Electricity Generation by Source, Alberta")+
-  geom_col(aes(years, ElectricityGeneration/1000,group=years,fill=Type),color="black",linewidth=.25,width = 0.9)
+  geom_col(aes(years, ElectricityGeneration/1000,group=years,fill=Type),color="black",linewidth=.25,width = 1)
 
 ```
-
-```{r deliverable 2, message=F, warning=F, }
+## Deliverable 3
+```{r deliverable 2, message=F, warning=F, out.width="95%",dpi=150,fig.align="center",fig.height=8,fig.width=14}
 sectorEmissions = read_csv("canadaEmissionsData.csv")
 sectorEmissions = sectorEmissions[c("year","prov","sector","scenario","emissions")]
 
@@ -101,3 +101,28 @@ singleGraph+
 
 ```
 
+
+## Deliverable 4
+# Tried for a couple of hours but couldn't get it to work
+```{r deliverable 3, message=F,warning=F,out.width="95%",dpi=150,fig.align="center",fig.height=8,fig.width=14}
+netLoadAndGen = read_excel("generation.xlsx") %>% clean_names()
+months = c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")
+
+netLoadAndGen = netLoadAndGen[-c(4)]
+
+netLoadAndGen = netLoadAndGen %>%
+                  pivot_longer(-c(month),names_to = "variable", values_to = "value")
+
+netLoad = netLoadAndGen %>% mutate(Month = month(netLoadAndGen$month),Year = year(netLoadAndGen$month))%>%
+                group_by(Month,Year)%>%
+                summarize(mean=mean(value,na.rm = T),min=min(value),max=max(value))%>%
+                mutate(date = ymd(paste(Year,Month,1,sep="-")))
+
+netLoad%>%
+  ggplot()+
+  geom_ribbon(aes(min=min,max=max,x = Year),alpha=0.4)+
+  geom_line(aes(Year,mean),color="black",linewidth=1.2)+
+  scale_x_continuous(breaks=pretty_breaks(12), expand=c(0,0))+
+  scale_y_continuous(breaks=pretty_breaks(), expand=c(0,0))
+  
+```
