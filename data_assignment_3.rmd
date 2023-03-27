@@ -1,0 +1,103 @@
+---
+title: "Data Assignment 3"
+author: "Abhinav Parbhakar"
+date: "2023-03-26"
+output: 
+  html_document: 
+    code_folding: hide
+---
+## Downloaded Data
+```{r downloadData, warning=FALSE,message=F}
+
+library(kableExtra)
+library(readxl)
+library(janitor)
+library(tidyverse)
+library(lubridate)
+library(scales)
+library(viridis)
+library(cansim)
+library(cowplot)
+
+
+download.file(url = "https://data.ec.gc.ca/data/substances/monitor/canada-s-official-greenhouse-gas-inventory/C-Tables-Electricity-Canada-Provinces-Territories/EN_Electricity_Can_Prov_Terr.xlsx", destfile = "data.xlsx", mode = "wb")
+download.file(url="https://econ366.aleach.ca/resources/assignment_3/assignment_3_projections.csv", destfile="canadaEmissionsData.csv", mode="wb")
+```
+
+```{r deliverable 1, warning=F,message=F}
+columNames = read_excel("data.xlsx",skip=2,n_max = 1,col_names = F) %>% clean_names()
+columNames[18] = 2020
+newColumnNames = c("Type")
+i = 1
+while (i <= 18){
+  newColumnNames = append(newColumnNames,columNames[i])
+  i = i + 1
+}
+
+newColumnNames[16] = 2017
+newColumnNames[17] = 2018
+newColumnNames[18] = 2019
+
+
+electricityData = read_excel("data.xlsx",skip = 16,n_max = 9,col_names = F ) %>% clean_names()
+
+colnames(electricityData) = newColumnNames
+
+electricityData = electricityData[-c(3,4,5),]
+electricityData$Type[5] = "Other Renewables"
+electricityData$Type[6] = "Other Generation"
+
+electricityData = electricityData %>% pivot_longer(-Type,names_to = "years", values_to = "ElectricityGeneration")
+
+electricityData%>%
+  ggplot()+
+  ggtitle("National Electricity Generation by Source")+
+  geom_col(aes(years, ElectricityGeneration/1000,group=years,fill=Type),color="black",linewidth=.25,width = 0.8)
+
+albertaData = read_excel("data.xlsx",sheet="Table A13-10",skip = 15,n_max = 7,col_names = F ) %>% clean_names()
+colnames(albertaData) = newColumnNames
+albertaData$Type[6] = "Other Renewables"
+albertaData$Type[7] = "Other Generation"
+
+albertaData = albertaData %>% pivot_longer(-Type,names_to = "years", values_to = "ElectricityGeneration")
+
+albertaData%>%
+  ggplot()+
+  ggtitle("Electricity Generation by Source, Alberta")+
+  geom_col(aes(years, ElectricityGeneration/1000,group=years,fill=Type),color="black",linewidth=.25,width = 0.9)
+
+```
+
+```{r deliverable 2, message=F, warning=F, }
+sectorEmissions = read_csv("canadaEmissionsData.csv")
+sectorEmissions = sectorEmissions[c("year","prov","sector","scenario","emissions")]
+
+sectorEmissions<-sectorEmissions %>% #reorder factor levels
+  mutate(prov=factor(prov, 
+                     levels=c("Canada" ,"BC","AB" ,"SK","MB", "ON","QC","ATL","TERR"  )))
+
+singleGraph <- sectorEmissions %>%
+  filter(scenario== "NIR 2022") %>%
+  filter(prov!= "Canada")%>%
+  filter(year <=2020)%>%
+  ggplot()+
+  geom_vline(xintercept = 2020,linetype=3)+
+  ggtitle("Canadian Electricity Sector GHG Emissions by Province")+
+  geom_area(aes(year,emissions,group=prov,fill=prov), position="stack", color="black", linewidth=0.5,alpha=4)
+singleGraph
+
+#Need to add missing points to the projectionData as it didn't have any data points for 2020 to bind it
+missingPoints = sectorEmissions %>% filter(year== 2020 & prov!="Canada" & scenario=="NIR 2022")
+
+projecTionData = sectorEmissions %>% filter(scenario=="2022 Reference Case" & prov!= "Canada" & emissions > 0)
+projecTionData = rbind(missingPoints,projecTionData)
+
+
+singleGraph+
+  ggtitle("Canadian Electricity Sector GHG Emissions", subtitle = "2022 NIR levels and 2022 Reference Case projections")+
+  geom_area(data=projecTionData,aes(projecTionData$year,projecTionData$emissions,group=projecTionData$prov,fill=projecTionData$prov),
+            color="black",position = "stack",size=0.1,alpha=0.4)
+  
+
+```
+
